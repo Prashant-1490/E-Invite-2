@@ -3,6 +3,40 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { insertEventSchema, insertCoupleSchema, insertGiftSchema, insertSiteContentSchema, insertContactInfoSchema } from "@shared/schema";
+import path from "path";
+import fs from "fs";
+import multer from "multer";
+
+// Configure multer for file uploads
+const uploadStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadsDir = path.join(process.cwd(), 'uploads');
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+    cb(null, uploadsDir);
+  },
+  filename: function (req, file, cb) {
+    const timestamp = Date.now();
+    const ext = path.extname(file.originalname);
+    const uniqueFilename = `${timestamp}-${Math.random().toString(36).substring(7)}${ext}`;
+    cb(null, uniqueFilename);
+  }
+});
+
+const upload = multer({ 
+  storage: uploadStorage,
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed!'), false);
+    }
+  },
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB limit
+  }
+});
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -94,6 +128,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching contact info:", error);
       res.status(500).json({ message: "Failed to fetch contact info" });
+    }
+  });
+
+  // File upload route (no authentication required)
+  app.post('/api/upload', upload.single('image'), (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: 'No file uploaded' });
+      }
+      
+      const imageUrl = `/uploads/${req.file.filename}`;
+      res.json({ imageUrl });
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      res.status(500).json({ message: 'Failed to upload file' });
     }
   });
 

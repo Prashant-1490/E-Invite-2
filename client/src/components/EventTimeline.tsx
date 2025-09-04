@@ -44,8 +44,16 @@ export function EventTimeline() {
                 data-testid={`event-${event.id}`}
               >
                 <div className="flex items-center space-x-4">
-                  <div className={`w-16 h-16 bg-${event.colorScheme} rounded-full flex items-center justify-center text-${event.colorScheme}-foreground`}>
-                    <i className={`fas fa-${event.icon} text-2xl`}></i>
+                  <div className={`w-16 h-16 bg-${event.colorScheme} rounded-full flex items-center justify-center text-${event.colorScheme}-foreground overflow-hidden`}>
+                    {event.imageUrl ? (
+                      <img 
+                        src={event.imageUrl} 
+                        alt={language === 'gujarati' ? event.nameGujarati : event.nameEnglish}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <i className={`fas fa-${event.icon} text-2xl`}></i>
+                    )}
                   </div>
                   <div className="flex-1">
                     <h4 className="text-xl font-semibold text-foreground gujarati-text">

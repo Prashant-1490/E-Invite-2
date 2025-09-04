@@ -13,10 +13,15 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertEventSchema, insertCoupleSchema, insertGiftSchema, insertContactInfoSchema, type Event, type Couple, type Gift, type ContactInfo } from "@shared/schema";
 import { LoadingSkeleton } from "@/components/ui/loading";
+import { ImageUpload } from "@/components/ui/image-upload";
+import { Edit, Trash2 } from "lucide-react";
 
 export function AdminPanel() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const [editingCouple, setEditingCouple] = useState<Couple | null>(null);
+  const [editingGift, setEditingGift] = useState<Gift | null>(null);
 
   const handleLogout = () => {
     localStorage.removeItem("admin-authenticated");
@@ -54,6 +59,7 @@ export function AdminPanel() {
       timeEnglish: "",
       datetime: new Date(),
       icon: "om",
+      imageUrl: "",
       colorScheme: "primary",
       sortOrder: 0,
     },
@@ -80,6 +86,131 @@ export function AdminPanel() {
       });
     },
   });
+
+  const updateEventMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      const response = await apiRequest("PATCH", `/api/admin/events/${id}`, data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      setEditingEvent(null);
+      eventForm.reset();
+      toast({
+        title: "Success",
+        description: "Event updated successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to update event",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteEventMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await apiRequest("DELETE", `/api/admin/events/${id}`);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      toast({
+        title: "Success",
+        description: "Event deleted successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to delete event",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Helper functions for event editing
+  const handleEditEvent = (event: Event) => {
+    setEditingEvent(event);
+    eventForm.reset({
+      nameGujarati: event.nameGujarati,
+      nameEnglish: event.nameEnglish,
+      timeGujarati: event.timeGujarati,
+      timeEnglish: event.timeEnglish,
+      datetime: event.datetime,
+      icon: event.icon,
+      imageUrl: event.imageUrl || "",
+      colorScheme: event.colorScheme,
+      sortOrder: event.sortOrder,
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingEvent(null);
+    eventForm.reset();
+  };
+
+  const handleEventSubmit = (data: any) => {
+    if (editingEvent) {
+      updateEventMutation.mutate({ id: editingEvent.id, data });
+    } else {
+      createEventMutation.mutate(data);
+    }
+  };
+
+  const handleEditCouple = (couple: any) => {
+    setEditingCouple(couple);
+    coupleForm.reset({
+      groomNameGujarati: couple.groomNameGujarati,
+      groomNameEnglish: couple.groomNameEnglish,
+      brideNameGujarati: couple.brideNameGujarati,
+      brideNameEnglish: couple.brideNameEnglish,
+      imageUrl: couple.imageUrl,
+      coupleSlug: couple.coupleSlug,
+    });
+  };
+
+  const handleCancelCoupleEdit = () => {
+    setEditingCouple(null);
+    coupleForm.reset();
+  };
+
+  const handleCoupleSubmit = (data: any) => {
+    if (editingCouple) {
+      updateCoupleMutation.mutate({ id: editingCouple.id, data });
+    } else {
+      createCoupleMutation.mutate(data);
+    }
+  };
+
+  const handleEditGift = (gift: any) => {
+    setEditingGift(gift);
+    giftForm.reset({
+      donorNameGujarati: gift.donorNameGujarati,
+      donorNameEnglish: gift.donorNameEnglish,
+      organizationGujarati: gift.organizationGujarati,
+      organizationEnglish: gift.organizationEnglish,
+      giftDescriptionGujarati: gift.giftDescriptionGujarati,
+      giftDescriptionEnglish: gift.giftDescriptionEnglish,
+      giftIcon: gift.giftIcon,
+      amount: gift.amount,
+    });
+  };
+
+  const handleCancelGiftEdit = () => {
+    setEditingGift(null);
+    giftForm.reset();
+  };
+
+  const handleGiftSubmit = (data: any) => {
+    if (editingGift) {
+      updateGiftMutation.mutate({ id: editingGift.id, data });
+    } else {
+      createGiftMutation.mutate(data);
+    }
+  };
 
   // Couple form
   const coupleForm = useForm({
@@ -111,6 +242,50 @@ export function AdminPanel() {
       toast({
         title: "Error",
         description: "Failed to create couple",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateCoupleMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      const response = await apiRequest("PATCH", `/api/admin/couples/${id}`, data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/couples"] });
+      setEditingCouple(null);
+      coupleForm.reset();
+      toast({
+        title: "Success",
+        description: "Couple updated successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to update couple",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteCoupleMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await apiRequest("DELETE", `/api/admin/couples/${id}`);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/couples"] });
+      toast({
+        title: "Success",
+        description: "Couple deleted successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to delete couple",
         variant: "destructive",
       });
     },
@@ -153,6 +328,50 @@ export function AdminPanel() {
     },
   });
 
+  const updateGiftMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      const response = await apiRequest("PATCH", `/api/admin/gifts/${id}`, data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/gifts"] });
+      setEditingGift(null);
+      giftForm.reset();
+      toast({
+        title: "Success",
+        description: "Gift updated successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to update gift",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteGiftMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await apiRequest("DELETE", `/api/admin/gifts/${id}`);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/gifts"] });
+      toast({
+        title: "Success",
+        description: "Gift deleted successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to delete gift",
+        variant: "destructive",
+      });
+    },
+  });
+
 
   return (
     <div className="min-h-screen bg-admin-panel">
@@ -181,12 +400,12 @@ export function AdminPanel() {
             <div className="grid lg:grid-cols-2 gap-8">
               <Card>
                 <CardHeader>
-                  <CardTitle>Add New Event</CardTitle>
+                  <CardTitle>{editingEvent ? "Edit Event" : "Add New Event"}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <Form {...eventForm}>
                     <form
-                      onSubmit={eventForm.handleSubmit((data) => createEventMutation.mutate(data))}
+                      onSubmit={eventForm.handleSubmit(handleEventSubmit)}
                       className="space-y-4"
                       data-testid="form-create-event"
                     >
@@ -274,14 +493,46 @@ export function AdminPanel() {
                           </FormItem>
                         )}
                       />
-                      <Button
-                        type="submit"
-                        disabled={createEventMutation.isPending}
-                        className="w-full"
-                        data-testid="button-submit-event"
-                      >
-                        {createEventMutation.isPending ? "Creating..." : "Create Event"}
-                      </Button>
+                      <FormField
+                        control={eventForm.control}
+                        name="imageUrl"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Event Image (optional - will override icon)</FormLabel>
+                            <FormControl>
+                              <ImageUpload
+                                value={field.value || ""}
+                                onChange={field.onChange}
+                                data-testid="input-event-image"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <div className="flex gap-2">
+                        <Button
+                          type="submit"
+                          disabled={createEventMutation.isPending || updateEventMutation.isPending}
+                          className="flex-1"
+                          data-testid="button-submit-event"
+                        >
+                          {editingEvent 
+                            ? (updateEventMutation.isPending ? "Updating..." : "Update Event")
+                            : (createEventMutation.isPending ? "Creating..." : "Create Event")
+                          }
+                        </Button>
+                        {editingEvent && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handleCancelEdit}
+                            data-testid="button-cancel-edit"
+                          >
+                            Cancel
+                          </Button>
+                        )}
+                      </div>
                     </form>
                   </Form>
                 </CardContent>
@@ -303,13 +554,42 @@ export function AdminPanel() {
                       {events?.map((event) => (
                         <div key={event.id} className="p-4 border border-border rounded-lg" data-testid={`admin-event-${event.id}`}>
                           <div className="flex justify-between items-start">
-                            <div>
+                            <div className="flex-1">
                               <h4 className="font-semibold gujarati-text">{event.nameGujarati}</h4>
                               <p className="text-sm text-muted-foreground">{event.nameEnglish}</p>
                               <p className="text-xs text-muted-foreground gujarati-text">{event.timeGujarati}</p>
+                              <p className="text-xs text-muted-foreground">{event.timeEnglish}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {new Date(event.datetime).toLocaleString()}
+                              </p>
                             </div>
-                            <div className="text-right">
+                            <div className="flex items-center gap-2">
                               <i className={`fas fa-${event.icon} text-primary`}></i>
+                              <div className="flex gap-1 ml-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleEditEvent(event)}
+                                  data-testid={`button-edit-event-${event.id}`}
+                                  className="h-8 w-8 p-0"
+                                >
+                                  <Edit className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    if (confirm("Are you sure you want to delete this event?")) {
+                                      deleteEventMutation.mutate(event.id);
+                                    }
+                                  }}
+                                  data-testid={`button-delete-event-${event.id}`}
+                                  className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                                  disabled={deleteEventMutation.isPending}
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -326,12 +606,12 @@ export function AdminPanel() {
             <div className="grid lg:grid-cols-2 gap-8">
               <Card>
                 <CardHeader>
-                  <CardTitle>Add New Couple</CardTitle>
+                  <CardTitle>{editingCouple ? "Edit Couple" : "Add New Couple"}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <Form {...coupleForm}>
                     <form
-                      onSubmit={coupleForm.handleSubmit((data) => createCoupleMutation.mutate(data))}
+                      onSubmit={coupleForm.handleSubmit(handleCoupleSubmit)}
                       className="space-y-4"
                       data-testid="form-create-couple"
                     >
@@ -405,22 +685,41 @@ export function AdminPanel() {
                         name="imageUrl"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Image URL</FormLabel>
+                            <FormLabel>Couple Image</FormLabel>
                             <FormControl>
-                              <Input {...field} placeholder="https://example.com/image.jpg" data-testid="input-couple-image-url" />
+                              <ImageUpload
+                                value={field.value}
+                                onChange={field.onChange}
+                                disabled={createCoupleMutation.isPending || updateCoupleMutation.isPending}
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
-                      <Button
-                        type="submit"
-                        disabled={createCoupleMutation.isPending}
-                        className="w-full"
-                        data-testid="button-submit-couple"
-                      >
-                        {createCoupleMutation.isPending ? "Creating..." : "Create Couple"}
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          type="submit"
+                          disabled={createCoupleMutation.isPending || updateCoupleMutation.isPending}
+                          className="flex-1"
+                          data-testid="button-submit-couple"
+                        >
+                          {editingCouple 
+                            ? (updateCoupleMutation.isPending ? "Updating..." : "Update Couple")
+                            : (createCoupleMutation.isPending ? "Creating..." : "Create Couple")
+                          }
+                        </Button>
+                        {editingCouple && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handleCancelCoupleEdit}
+                            data-testid="button-cancel-couple-edit"
+                          >
+                            Cancel
+                          </Button>
+                        )}
+                      </div>
                     </form>
                   </Form>
                 </CardContent>
@@ -441,13 +740,35 @@ export function AdminPanel() {
                     <div className="space-y-4 max-h-96 overflow-y-auto">
                       {couples?.map((couple) => (
                         <div key={couple.id} className="p-4 border border-border rounded-lg" data-testid={`admin-couple-${couple.id}`}>
-                          <h4 className="font-semibold gujarati-text">
-                            {couple.groomNameGujarati} & {couple.brideNameGujarati}
-                          </h4>
-                          <p className="text-sm text-muted-foreground">
-                            {couple.groomNameEnglish} & {couple.brideNameEnglish}
-                          </p>
-                          <p className="text-xs text-muted-foreground">Slug: {couple.coupleSlug}</p>
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <h4 className="font-semibold gujarati-text">
+                                {couple.groomNameGujarati} & {couple.brideNameGujarati}
+                              </h4>
+                              <p className="text-sm text-muted-foreground">
+                                {couple.groomNameEnglish} & {couple.brideNameEnglish}
+                              </p>
+                              <p className="text-xs text-muted-foreground">Slug: {couple.coupleSlug}</p>
+                            </div>
+                            <div className="flex gap-2 ml-4">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleEditCouple(couple)}
+                                data-testid={`button-edit-couple-${couple.id}`}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => deleteCoupleMutation.mutate(couple.id)}
+                                data-testid={`button-delete-couple-${couple.id}`}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -462,12 +783,12 @@ export function AdminPanel() {
             <div className="grid lg:grid-cols-2 gap-8">
               <Card>
                 <CardHeader>
-                  <CardTitle>Add New Gift</CardTitle>
+                  <CardTitle>{editingGift ? "Edit Gift" : "Add New Gift"}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <Form {...giftForm}>
                     <form
-                      onSubmit={giftForm.handleSubmit((data) => createGiftMutation.mutate(data))}
+                      onSubmit={giftForm.handleSubmit(handleGiftSubmit)}
                       className="space-y-4"
                       data-testid="form-create-gift"
                     >
@@ -543,14 +864,29 @@ export function AdminPanel() {
                           </FormItem>
                         )}
                       />
-                      <Button
-                        type="submit"
-                        disabled={createGiftMutation.isPending}
-                        className="w-full"
-                        data-testid="button-submit-gift"
-                      >
-                        {createGiftMutation.isPending ? "Creating..." : "Create Gift"}
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          type="submit"
+                          disabled={createGiftMutation.isPending || updateGiftMutation.isPending}
+                          className="flex-1"
+                          data-testid="button-submit-gift"
+                        >
+                          {editingGift 
+                            ? (updateGiftMutation.isPending ? "Updating..." : "Update Gift")
+                            : (createGiftMutation.isPending ? "Creating..." : "Create Gift")
+                          }
+                        </Button>
+                        {editingGift && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handleCancelGiftEdit}
+                            data-testid="button-cancel-gift-edit"
+                          >
+                            Cancel
+                          </Button>
+                        )}
+                      </div>
                     </form>
                   </Form>
                 </CardContent>
@@ -571,11 +907,33 @@ export function AdminPanel() {
                     <div className="space-y-4 max-h-96 overflow-y-auto">
                       {gifts?.map((gift) => (
                         <div key={gift.id} className="p-4 border border-border rounded-lg" data-testid={`admin-gift-${gift.id}`}>
-                          <h4 className="font-semibold gujarati-text">{gift.donorNameGujarati}</h4>
-                          <p className="text-sm text-muted-foreground gujarati-text">{gift.giftDescriptionGujarati}</p>
-                          {gift.amount && (
-                            <p className="text-sm font-bold text-primary">₹{gift.amount}</p>
-                          )}
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <h4 className="font-semibold gujarati-text">{gift.donorNameGujarati}</h4>
+                              <p className="text-sm text-muted-foreground gujarati-text">{gift.giftDescriptionGujarati}</p>
+                              {gift.amount && (
+                                <p className="text-sm font-bold text-primary">₹{gift.amount}</p>
+                              )}
+                            </div>
+                            <div className="flex gap-2 ml-4">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleEditGift(gift)}
+                                data-testid={`button-edit-gift-${gift.id}`}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => deleteGiftMutation.mutate(gift.id)}
+                                data-testid={`button-delete-gift-${gift.id}`}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
                         </div>
                       ))}
                     </div>

@@ -44,6 +44,7 @@ export const events = pgTable("events", {
   timeEnglish: text("time_english").notNull(),
   datetime: timestamp("datetime").notNull(),
   icon: varchar("icon").notNull(),
+  imageUrl: text("image_url"),
   colorScheme: varchar("color_scheme").notNull().default("primary"),
   sortOrder: integer("sort_order").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow(),
@@ -118,6 +119,11 @@ export const giftsRelations = relations(gifts, ({ many }) => ({
 export const insertEventSchema = createInsertSchema(events).omit({
   id: true,
   createdAt: true,
+}).extend({
+  datetime: z.union([
+    z.string().transform((str) => new Date(str)),
+    z.date(),
+  ]),
 });
 
 export const insertCoupleSchema = createInsertSchema(couples).omit({

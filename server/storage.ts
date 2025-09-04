@@ -20,6 +20,29 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, asc } from "drizzle-orm";
+import fs from "fs";
+import path from "path";
+
+// Helper function to delete image files
+function deleteImageFile(imageUrl: string | null): void {
+  if (!imageUrl) return;
+  
+  try {
+    // Extract filename from URL path (e.g., "/uploads/filename.jpg" -> "filename.jpg")
+    const filename = imageUrl.split('/').pop();
+    if (!filename) return;
+    
+    const filePath = path.join(process.cwd(), 'uploads', filename);
+    
+    // Check if file exists and delete it
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+      console.log(`Deleted image file: ${filename}`);
+    }
+  } catch (error) {
+    console.error(`Failed to delete image file for URL ${imageUrl}:`, error);
+  }
+}
 
 export interface IStorage {
   // User operations (required for Replit Auth)
@@ -92,6 +115,14 @@ export class DatabaseStorage implements IStorage {
   }
   
   async updateEvent(id: string, event: Partial<InsertEvent>): Promise<Event> {
+    // If imageUrl is being updated, delete the old image
+    if (event.imageUrl !== undefined) {
+      const [currentEvent] = await db.select().from(events).where(eq(events.id, id));
+      if (currentEvent?.imageUrl && currentEvent.imageUrl !== event.imageUrl) {
+        deleteImageFile(currentEvent.imageUrl);
+      }
+    }
+    
     const [updatedEvent] = await db
       .update(events)
       .set(event)
@@ -101,7 +132,16 @@ export class DatabaseStorage implements IStorage {
   }
   
   async deleteEvent(id: string): Promise<void> {
+    // First fetch the event to get the image URL
+    const [event] = await db.select().from(events).where(eq(events.id, id));
+    
+    // Delete the database record
     await db.delete(events).where(eq(events.id, id));
+    
+    // Delete the associated image file if it exists
+    if (event?.imageUrl) {
+      deleteImageFile(event.imageUrl);
+    }
   }
   
   // Couple operations
@@ -125,6 +165,14 @@ export class DatabaseStorage implements IStorage {
   }
   
   async updateCouple(id: string, couple: Partial<InsertCouple>): Promise<Couple> {
+    // If imageUrl is being updated, delete the old image
+    if (couple.imageUrl !== undefined) {
+      const [currentCouple] = await db.select().from(couples).where(eq(couples.id, id));
+      if (currentCouple?.imageUrl && currentCouple.imageUrl !== couple.imageUrl) {
+        deleteImageFile(currentCouple.imageUrl);
+      }
+    }
+    
     const [updatedCouple] = await db
       .update(couples)
       .set(couple)
@@ -134,7 +182,16 @@ export class DatabaseStorage implements IStorage {
   }
   
   async deleteCouple(id: string): Promise<void> {
+    // First fetch the couple to get the image URL
+    const [couple] = await db.select().from(couples).where(eq(couples.id, id));
+    
+    // Delete the database record
     await db.delete(couples).where(eq(couples.id, id));
+    
+    // Delete the associated image file if it exists
+    if (couple?.imageUrl) {
+      deleteImageFile(couple.imageUrl);
+    }
   }
   
   // Gift operations
